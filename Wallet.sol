@@ -13,6 +13,13 @@ contract Wallet {
     address public owner;
     address public keyTokenAddress;
     
+    struct ERC721Token {
+        address tokenAddress;
+        uint256 tokenId;
+    }
+    
+    mapping(uint256 => ERC721Token) private erc721Tokens;
+    
     constructor(address _keyTokenAddress) {
         owner = msg.sender;
         keyTokenAddress = _keyTokenAddress;
@@ -39,9 +46,19 @@ contract Wallet {
         require(token.transfer(to, amount), "ERC20 transfer failed.");
     }
     
-    function transferERC721(address tokenAddress, address to, uint256 tokenId) external onlyWithKeyToken {
-        IERC721 token = IERC721(tokenAddress);
-        require(token.balanceOf(address(this)) > 0, "No ERC721 tokens in the wallet.");
+    function addERC721Token(address tokenAddress, uint256 tokenId) external onlyWithKeyToken {
+        erc721Tokens[tokenId] = ERC721Token(tokenAddress, tokenId);
+    }
+    
+    function removeERC721Token(uint256 tokenId) external onlyWithKeyToken {
+        delete erc721Tokens[tokenId];
+    }
+    
+    function transferERC721(uint256 tokenId, address to) external onlyWithKeyToken {
+        ERC721Token memory tokenData = erc721Tokens[tokenId];
+        require(tokenData.tokenAddress != address(0), "ERC721 token not found in the wallet.");
+        
+        IERC721 token = IERC721(tokenData.tokenAddress);
         token.transferFrom(address(this), to, tokenId);
     }
 }
